@@ -630,7 +630,6 @@ main (int argc, char** argv)
       vis->spin ();
     }
     //Integrate
-    Eigen::Affine3d  pose_rel_to_first_frame = poses[0].inverse () * poses[i];
     if (cloud_only) // Only if we're just dumping out the cloud
     {
       pcl::PointCloud<pcl::PointXYZRGBA> cloud_unorganized;
@@ -639,13 +638,13 @@ main (int argc, char** argv)
         if (!pcl_isnan (cloud_organized->at (i).z))
           cloud_unorganized.push_back (cloud_organized->at (i));
       }
-      pcl::transformPointCloud (cloud_unorganized, cloud_unorganized, pose_rel_to_first_frame);
+      pcl::transformPointCloud (cloud_unorganized, cloud_unorganized, poses[i]);
       *aggregate += cloud_unorganized;
       // Filter so it doesn't get too big
       if (i % 20 == 0 || i == num_frames - 1)
       {
         pcl::VoxelGrid<pcl::PointXYZRGBA> vg;
-        vg.setLeafSize (0.01, 0.01, 0.01);
+        vg.setLeafSize (0.005, 0.005, 0.005);
         vg.setInputCloud (aggregate);
         vg.filter (cloud_unorganized);
         *aggregate = cloud_unorganized;
@@ -653,7 +652,8 @@ main (int argc, char** argv)
     }
     else
     {
-      tsdf->integrateCloud (*cloud_organized, pcl::PointCloud<pcl::Normal> (), pose_rel_to_first_frame);
+      tsdf->integrateCloud (*cloud_organized, pcl::PointCloud<pcl::Normal> (),
+          poses[i]);
     }
   }
   //if (!cloud_only) tsdf->save_vtk("tsdf.vti");
