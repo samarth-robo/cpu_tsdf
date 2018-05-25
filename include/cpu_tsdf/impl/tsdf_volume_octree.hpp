@@ -45,6 +45,8 @@
 #include <assert.h>
 #include <pcl/console/time.h>
 
+#include "cpu_tsdf/Vis.h"
+
 template <typename PointT, typename NormalT> bool
 cpu_tsdf::TSDFVolumeOctree::integrateCloud (
   const pcl::PointCloud<PointT> &cloud, 
@@ -52,6 +54,15 @@ cpu_tsdf::TSDFVolumeOctree::integrateCloud (
   const Eigen::Affine3d &trans)
 {
   Eigen::Affine3f trans_inv = trans.inverse ().cast<float> ();
+
+  /*
+  cout << trans.translation() << endl;
+  Vis vis("debug");
+  typename pcl::PointCloud<PointT>::Ptr c = boost::make_shared<pcl::PointCloud<PointT> >();
+  pcl::copyPointCloud(cloud, *c);
+  vis.addPointCloud<PointT>(c, {1, 0, 0});
+  vis.show(true);
+   */
 
   // First, sample a few points and force their containing voxels to split
   int px_step = 1;
@@ -91,7 +102,7 @@ cpu_tsdf::TSDFVolumeOctree::integrateCloud (
   
   // Do Frustum Culling to get rid of unseen voxels
   std::vector<cpu_tsdf::OctreeNode::Ptr> voxels_culled;
-  getFrustumCulledVoxels(trans, voxels_culled);
+  getFrustumCulledVoxels(trans, voxels_culled, cloud);
 #pragma omp parallel for
   for (size_t i = 0; i < voxels_culled.size (); i++)
   {

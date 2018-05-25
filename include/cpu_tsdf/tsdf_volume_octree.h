@@ -204,7 +204,11 @@ namespace cpu_tsdf
     /** \brief Save to disk */
     void
     save (const std::string &filename) const;
-    
+
+    /** \brief Save to disk in VTK format */
+    void
+    save_vtk (const std::string &filename) const;
+
     /** \brief Load from disk */
     void
     load (const std::string &filename);
@@ -278,7 +282,8 @@ namespace cpu_tsdf
     getVoxelCenters (int nlevels=4) const;
 
     void
-    getFrustumCulledVoxels (const Eigen::Affine3d &trans, std::vector<cpu_tsdf::OctreeNode::Ptr> &voxels) const;
+    getFrustumCulledVoxels (const Eigen::Affine3d &trans, std::vector<cpu_tsdf::OctreeNode::Ptr> &voxels,
+    pcl::PointCloud<pcl::PointXYZRGBA> cloud = pcl::PointCloud<pcl::PointXYZRGBA>()) const;
 
     inline bool
     isEmpty () const

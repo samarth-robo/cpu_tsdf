@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+set(CMAKE_CXX_STANDARD 11)
+
 project(cpu_tsdf)
 # Find modules
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-set(CMAKE_BUILD_TYPE Release CACHE STRING "Release" FORCE)
+# set(CMAKE_BUILD_TYPE Release CACHE STRING "Release" FORCE)
 
 # Use, i.e. don't skip the full RPATH for the build tree
 set(CMAKE_SKIP_BUILD_RPATH  FALSE)
@@ -33,6 +35,9 @@ find_package(Boost COMPONENTS program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
+find_package(VTK REQUIRED)
+include_directories(${VTK_INCLUDE_DIRS})
+link_libraries(${VTK_LIBRARIES})
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
@@ -43,7 +48,8 @@ add_library (cpu_tsdf SHARED
               src/lib/octree.cpp
               src/lib/tsdf_volume_octree.cpp
               src/lib/tsdf_interface.cpp
-              src/lib/marching_cubes_tsdf_octree.cpp)
+              src/lib/marching_cubes_tsdf_octree.cpp
+		      src/lib/Vis.cpp)
 
             target_link_libraries (cpu_tsdf ${PCL_LIBRARIES})
 install(TARGETS cpu_tsdf DESTINATION lib${LIB_SUFFIX})

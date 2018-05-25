@@ -44,8 +44,17 @@
 #include <pcl/console/time.h>
 #include <pcl/common/io.h>
 
+#include <vtkImageData.h>
+#include <vtkFloatArray.h>
+#include <vtkXMLImageDataWriter.h>
+#include <vtkXMLImageDataReader.h>
+#include <vtkSmartPointer.h>
+#include <vtkPointData.h>
+
 #include <iostream>
 #include <fstream>
+
+#include "cpu_tsdf/Vis.h"
 
 using std::vector;
 using std::string;
@@ -69,9 +78,9 @@ cpu_tsdf::TSDFVolumeOctree::TSDFVolumeOctree()
   , principal_point_y_ (240)
   , image_width_ (640)
   , image_height_ (480)
-  , max_cell_size_x_ (0.5f)
-  , max_cell_size_y_ (0.5f)
-  , max_cell_size_z_ (0.5f)
+  , max_cell_size_x_ (0.05f)
+  , max_cell_size_y_ (0.05f)
+  , max_cell_size_z_ (0.05f)
   , UNOBSERVED_VOXEL (std::numeric_limits<float>::quiet_NaN ())
   , weight_by_depth_ (false)
   , weight_by_variance_ (false)
@@ -243,6 +252,59 @@ cpu_tsdf::TSDFVolumeOctree::save (const std::string &filename) const
   octree_->serialize (f);
   f.close ();
 }
+
+////////////////////////////////////////////////////
+void cpu_tsdf::TSDFVolumeOctree::save_vtk(const std::string &filename) const {
+  vtkSmartPointer<vtkImageData> tsdf_volume = vtkSmartPointer<vtkImageData>::New();
+  tsdf_volume->SetDimensions(xres_, yres_, zres_);
+  float cell_size = xsize_ / xres_;
+  float ox(xsize_/2.f), oy(ysize_/2.f), oz(zsize_/2.f);
+  tsdf_volume->SetOrigin(ox, oy, oz);
+  tsdf_volume->SetSpacing(cell_size, cell_size, cell_size);
+
+  vtkSmartPointer<vtkFloatArray>
+      distance = vtkSmartPointer<vtkFloatArray>::New(),
+          weight = vtkSmartPointer<vtkFloatArray>::New();
+  int numCells = xres_ * yres_ * zres_;
+  distance->SetNumberOfTuples(numCells);
+  weight->SetNumberOfTuples(numCells);
+
+  size_t valid_count = 0;
+  int i, j, k, offset_k, offset_j;
+  for(k=0; k < zres_; ++k)
+  {
+    offset_k = k * xres_ * yres_;
+    for(j=0; j<yres_; ++j)
+    {
+      offset_j = j * xres_;
+      for(i=0; i<xres_; ++i)
+      {
+
+        int offset = i + offset_j + offset_k;
+        weight->SetValue(offset, 0);
+
+        float x(i*cell_size - ox), y(j*cell_size - oy), z(k*cell_size - oz);
+
+        bool valid(true);
+        float d = getTSDFValue(x, y, z, &valid);
+        if (valid) {distance->SetValue(offset, d); valid_count++;}
+        else distance->SetValue(offset, 1);
+      }
+    }
+  }
+  cout << "TSDF volume has " << valid_count << " valid distances" << endl;
+  tsdf_volume->GetPointData()->AddArray(distance);
+  distance->SetName("distance");
+  tsdf_volume->GetPointData()->AddArray(weight);
+  weight->SetName("weight");
+
+  vtkSmartPointer<vtkXMLImageDataWriter> writer =
+      vtkSmartPointer<vtkXMLImageDataWriter>::New();
+  writer->SetFileName(filename.c_str());
+  writer->SetInputData(tsdf_volume);
+  writer->Write();
+}
+
 
 ////////////////////////////////////////////////////
 void
@@ -620,7 +682,8 @@ cpu_tsdf::TSDFVolumeOctree::reprojectPoint (const pcl::PointXYZ &pt, int &u, int
 
 void
 cpu_tsdf::TSDFVolumeOctree::getFrustumCulledVoxels (const Eigen::Affine3d &trans, 
-                                              std::vector<cpu_tsdf::OctreeNode::Ptr> &voxels) const
+                                              std::vector<cpu_tsdf::OctreeNode::Ptr> &voxels,
+  pcl::PointCloud<pcl::PointXYZRGBA> cloud) const
 {
   std::vector<cpu_tsdf::OctreeNode::Ptr> voxels_all;
   octree_->getLeaves (voxels_all, max_cell_size_x_, max_cell_size_y_, max_cell_size_z_);
@@ -646,6 +709,16 @@ cpu_tsdf::TSDFVolumeOctree::getFrustumCulledVoxels (const Eigen::Affine3d &trans
   fc.setFarPlaneDistance (max_sensor_dist_);
   fc.setInputCloud (voxel_cloud);
   fc.filter (indices);
+  /*
+  Vis vis("debug");
+  pcl::PointCloud<pcl::PointXYZ>::Ptr c = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+  pcl::PointCloud<pcl::PointXYZRGBA>::Ptr c2 = boost::make_shared<pcl::PointCloud<pcl::PointXYZRGBA> >();
+  pcl::copyPointCloud(cloud, *c2);
+  for (int i = 0; i < indices.size(); i++) c->push_back(voxel_cloud->at(indices[i]));
+  vis.addPointCloud(c, {1, 0, 0});
+  vis.addPointCloud<pcl::PointXYZRGBA>(c2, {0, 1, 0});
+  vis.show(true);
+   */
   voxels.resize (indices.size ());
   for (size_t i = 0; i < indices.size (); i++)
   {

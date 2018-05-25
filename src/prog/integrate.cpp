@@ -656,6 +656,7 @@ main (int argc, char** argv)
       tsdf->integrateCloud (*cloud_organized, pcl::PointCloud<pcl::Normal> (), pose_rel_to_first_frame);
     }
   }
+  //if (!cloud_only) tsdf->save_vtk("tsdf.vti");
   // Save
   boost::filesystem::create_directory (out_dir);
   // If we're just saving the cloud, no need to mesh
@@ -692,7 +693,3 @@ main (int argc, char** argv)
     PCL_INFO ("Saved to %s/mesh.ply\n", out_dir.c_str ());
   }
 }
-
-  
-
-
