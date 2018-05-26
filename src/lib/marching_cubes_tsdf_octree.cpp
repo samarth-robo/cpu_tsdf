@@ -40,6 +40,13 @@
 
 #include <cpu_tsdf/marching_cubes_tsdf_octree.h>
 
+#include <vtkImageData.h>
+#include <vtkFloatArray.h>
+#include <vtkXMLImageDataWriter.h>
+#include <vtkXMLImageDataReader.h>
+#include <vtkSmartPointer.h>
+#include <vtkPointData.h>
+
 void
 cpu_tsdf::MarchingCubesTSDFOctree::setInputTSDF (cpu_tsdf::TSDFVolumeOctree::ConstPtr tsdf_volume)
 {
@@ -231,3 +238,50 @@ cpu_tsdf::MarchingCubesTSDFOctree::reconstructVoxel (const OctreeNode* voxel, pc
   }
 }
 
+////////////////////////////////////////////////////
+void cpu_tsdf::MarchingCubesTSDFOctree::saveTSDFvtk(const std::string filename) {
+
+  vtkSmartPointer<vtkImageData> vtk_vol = vtkSmartPointer<vtkImageData>::New();
+  int xres, yres, zres;
+  tsdf_volume_->getResolution(xres, yres, zres);
+  float xsize, ysize, zsize;
+  tsdf_volume_->getGridSize(xsize, ysize, zsize);
+
+  vtk_vol->SetDimensions(xres, yres, zres);
+  float cell_size = xsize / xres;
+  float ox(xsize/2.f), oy(ysize/2.f), oz(zsize/2.f);
+  vtk_vol->SetOrigin(ox, oy, oz);
+  vtk_vol->SetSpacing(cell_size, cell_size, cell_size);
+
+  vtkSmartPointer<vtkFloatArray>
+      distance = vtkSmartPointer<vtkFloatArray>::New();
+  int numCells = xres * yres * zres;
+  distance->SetNumberOfTuples(numCells);
+
+  pcl::console::print_info("Filling in VTK volume...");
+
+#pragma omp parallel for
+  for (int idx = 0; idx < numCells; idx++) {
+    size_t xyres = xres * yres;
+    size_t k  = idx / xyres;
+    size_t ij = idx % xyres;
+    size_t j  = ij  / xres;
+    size_t i  = ij  % xres;
+
+    Eigen::Vector3i pos(i, j, k);
+    float d = getGridValue(pos);
+    distance->SetValue(idx, d);
+  }
+  pcl::console::print_info(" Done.\n");
+
+  vtk_vol->GetPointData()->AddArray(distance);
+  distance->SetName("distance");
+
+  vtkSmartPointer<vtkXMLImageDataWriter> writer =
+      vtkSmartPointer<vtkXMLImageDataWriter>::New();
+  writer->SetFileName(filename.c_str());
+  writer->SetInputData(vtk_vol);
+  pcl::console::print_info("Writing VTK volume...");
+  writer->Write();
+  pcl::console::print_info(" Done.\n");
+}

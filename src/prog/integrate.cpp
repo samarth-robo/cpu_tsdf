@@ -656,7 +656,6 @@ main (int argc, char** argv)
           poses[i]);
     }
   }
-  //if (!cloud_only) tsdf->save_vtk("tsdf.vti");
   // Save
   boost::filesystem::create_directory (out_dir);
   // If we're just saving the cloud, no need to mesh
@@ -691,5 +690,7 @@ main (int argc, char** argv)
     else
       pcl::io::savePLYFileBinary (out_dir + "/mesh.ply", *mesh);
     PCL_INFO ("Saved to %s/mesh.ply\n", out_dir.c_str ());
+    mc.saveTSDFvtk("tsdf.vti");
+    PCL_INFO ("Saved to %s/tsdf.vti\n", out_dir.c_str ());
   }
 }

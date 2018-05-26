@@ -205,10 +205,6 @@ namespace cpu_tsdf
     void
     save (const std::string &filename) const;
 
-    /** \brief Save to disk in VTK format */
-    void
-    save_vtk (const std::string &filename) const;
-
     /** \brief Load from disk */
     void
     load (const std::string &filename);

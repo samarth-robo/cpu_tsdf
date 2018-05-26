@@ -78,6 +78,8 @@ namespace cpu_tsdf
     setMinWeight (float w_min)
     { w_min_ = w_min;}
 
+    void saveTSDFvtk(const std::string filename);
+
   protected:
     void
     voxelizeData ();

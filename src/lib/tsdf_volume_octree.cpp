@@ -44,15 +44,9 @@
 #include <pcl/console/time.h>
 #include <pcl/common/io.h>
 
-#include <vtkImageData.h>
-#include <vtkFloatArray.h>
-#include <vtkXMLImageDataWriter.h>
-#include <vtkXMLImageDataReader.h>
-#include <vtkSmartPointer.h>
-#include <vtkPointData.h>
-
 #include <iostream>
 #include <fstream>
+#include <cpu_tsdf/marching_cubes_tsdf_octree.h>
 
 #include "cpu_tsdf/Vis.h"
 
@@ -252,59 +246,6 @@ cpu_tsdf::TSDFVolumeOctree::save (const std::string &filename) const
   octree_->serialize (f);
   f.close ();
 }
-
-////////////////////////////////////////////////////
-void cpu_tsdf::TSDFVolumeOctree::save_vtk(const std::string &filename) const {
-  vtkSmartPointer<vtkImageData> tsdf_volume = vtkSmartPointer<vtkImageData>::New();
-  tsdf_volume->SetDimensions(xres_, yres_, zres_);
-  float cell_size = xsize_ / xres_;
-  float ox(xsize_/2.f), oy(ysize_/2.f), oz(zsize_/2.f);
-  tsdf_volume->SetOrigin(ox, oy, oz);
-  tsdf_volume->SetSpacing(cell_size, cell_size, cell_size);
-
-  vtkSmartPointer<vtkFloatArray>
-      distance = vtkSmartPointer<vtkFloatArray>::New(),
-          weight = vtkSmartPointer<vtkFloatArray>::New();
-  int numCells = xres_ * yres_ * zres_;
-  distance->SetNumberOfTuples(numCells);
-  weight->SetNumberOfTuples(numCells);
-
-  size_t valid_count = 0;
-  int i, j, k, offset_k, offset_j;
-  for(k=0; k < zres_; ++k)
-  {
-    offset_k = k * xres_ * yres_;
-    for(j=0; j<yres_; ++j)
-    {
-      offset_j = j * xres_;
-      for(i=0; i<xres_; ++i)
-      {
-
-        int offset = i + offset_j + offset_k;
-        weight->SetValue(offset, 0);
-
-        float x(i*cell_size - ox), y(j*cell_size - oy), z(k*cell_size - oz);
-
-        bool valid(true);
-        float d = getTSDFValue(x, y, z, &valid);
-        if (valid) {distance->SetValue(offset, d); valid_count++;}
-        else distance->SetValue(offset, 1);
-      }
-    }
-  }
-  cout << "TSDF volume has " << valid_count << " valid distances" << endl;
-  tsdf_volume->GetPointData()->AddArray(distance);
-  distance->SetName("distance");
-  tsdf_volume->GetPointData()->AddArray(weight);
-  weight->SetName("weight");
-
-  vtkSmartPointer<vtkXMLImageDataWriter> writer =
-      vtkSmartPointer<vtkXMLImageDataWriter>::New();
-  writer->SetFileName(filename.c_str());
-  writer->SetInputData(tsdf_volume);
-  writer->Write();
-}
-
 
 ////////////////////////////////////////////////////
 void
