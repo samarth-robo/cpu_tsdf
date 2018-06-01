@@ -87,6 +87,9 @@ namespace cpu_tsdf
     float
     getGridValue (Eigen::Vector3i pos);
 
+    float
+    getRawGridValue (Eigen::Vector3i pos);
+
     void
     performReconstruction (pcl::PolygonMesh &output);
 

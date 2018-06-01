@@ -107,7 +107,20 @@ cpu_tsdf::MarchingCubesTSDFOctree::getGridValue (Eigen::Vector3i pos)
   tsdf_volume_->getDepthTruncationLimits (max_dist_pos, max_dist_neg);
   return (d * max_dist_neg); //was fabs
 }
-    
+
+float
+cpu_tsdf::MarchingCubesTSDFOctree::getRawGridValue (Eigen::Vector3i pos)
+{
+  pcl::PointXYZ ctr = tsdf_volume_->getVoxelCenter (pos[0], pos[1], pos[2]);
+  const cpu_tsdf::OctreeNode* voxel = tsdf_volume_->octree_->getContainingVoxel (ctr.x, ctr.y, ctr.z);
+  float d;
+  float w;
+  voxel->getData (d, w);
+  if (w < w_min_ || fabs(d) >= 1)
+    return (std::numeric_limits<float>::quiet_NaN ());
+  return d;
+}
+
 void
 cpu_tsdf::MarchingCubesTSDFOctree::performReconstruction (pcl::PolygonMesh &output)
 {
@@ -269,7 +282,7 @@ void cpu_tsdf::MarchingCubesTSDFOctree::saveTSDFvtk(const std::string filename) 
     size_t i  = ij  % xres;
 
     Eigen::Vector3i pos(i, j, k);
-    float d = getGridValue(pos);
+    float d = getRawGridValue(pos);
     distance->SetValue(idx, d);
   }
   pcl::console::print_info(" Done.\n");
