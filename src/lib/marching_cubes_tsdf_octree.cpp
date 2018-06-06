@@ -282,7 +282,7 @@ void cpu_tsdf::MarchingCubesTSDFOctree::saveTSDFvtk(const std::string filename) 
     size_t i  = ij  % xres;
 
     Eigen::Vector3i pos(i, j, k);
-    float d = getRawGridValue(pos);
+    float d = getGridValue(pos);
     distance->SetValue(idx, d);
   }
   pcl::console::print_info(" Done.\n");
