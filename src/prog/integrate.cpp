@@ -224,22 +224,23 @@ std::string getSharedPrefix (const std::vector<std::string> &files)
   // Compare the first and last (sorted) string
   const std::string &first = files.front ();
   const std::string &last = files.back ();
-  // March til we break or hit a numeric character;
-  int i;
-  for (i = 0; i < first.length (); i++)
-  {
-    if (first[i] != last[i] || std::isdigit(first[i]))
-    {
-      break;
-    }
-  }
-  if (i == 0)
+  size_t i = first.find_last_of('/');
+  // // March til we break or hit a numeric character;
+  // int i;
+  // for (i = 0; i < first.length (); i++)
+  // {
+  //   if (first[i] != last[i] || std::isdigit(first[i]))
+  //   {
+  //     break;
+  //   }
+  // }
+  if (i == std::string::npos)
   {
     return ("");
   }
   else
   {
-    return (first.substr (0, i));
+    return (first.substr (0, i+1));
   }
 }
 
